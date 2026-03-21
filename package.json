@@ -1,0 +1,17 @@
+{
+  "name": "watchdog",
+  "version": "1.0.0",
+  "description": "Filesystem watchdog — kills bash.exe on access to protected paths and sends Telegram alerts",
+  "main": "watchdog.js",
+  "scripts": {
+    "start": "node watchdog.js",
+    "install-svc": "powershell -ExecutionPolicy Bypass -NonInteractive -File install-service.ps1",
+    "uninstall-svc": "powershell -ExecutionPolicy Bypass -NonInteractive -File uninstall-service.ps1"
+  },
+  "dependencies": {
+    "chokidar": "^3.6.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

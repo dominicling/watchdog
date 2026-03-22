@@ -1,0 +1,8 @@
+{
+  "honeypot_id": "HP-INF-001",
+  "serviceToken": "st.eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpbmZpc2ljYWxJZCI6IjY0NzNhYjIxM2RlZjQ4NmM3ODkwYWJjMiIsInR5cGUiOiJzZXJ2aWNlVG9rZW4iLCJ3b3Jrc3BhY2VJZCI6IjY0NzNhYjIxM2RlZjQ4NmM3ODkwYWJjMiIsImVudmlyb25tZW50IjoicHJvZCIsImlhdCI6MTcwOTg0NTQzMiwiZXhwIjoxNzQxMzgxNDMyfQ.FAKESIGNATURE_HP_INF_001_xR7mQ3nK9pL2wJ5v",
+  "workspaceId": "6473ab213def486c7890abc2",
+  "environment": "prod",
+  "apiUrl": "https://app.infisical.com",
+  "version": "3.1.0"
+}

@@ -1,12 +1,16 @@
 {
   "name": "watchdog",
   "version": "1.0.0",
-  "description": "Filesystem watchdog — kills bash.exe on access to protected paths and sends Telegram alerts",
+  "description": "Security watchdog — bash.exe filesystem monitor + honeypot credential file alerting",
   "main": "watchdog.js",
   "scripts": {
     "start": "node watchdog.js",
+    "start-honeypot": "node honeypot-monitor.js",
     "install-svc": "powershell -ExecutionPolicy Bypass -NonInteractive -File install-service.ps1",
-    "uninstall-svc": "powershell -ExecutionPolicy Bypass -NonInteractive -File uninstall-service.ps1"
+    "uninstall-svc": "powershell -ExecutionPolicy Bypass -NonInteractive -File uninstall-service.ps1",
+    "setup-honeypot": "powershell -ExecutionPolicy Bypass -NonInteractive -File setup-honeypot.ps1",
+    "install-honeypot-svc": "powershell -ExecutionPolicy Bypass -NonInteractive -File install-honeypot-service.ps1",
+    "uninstall-honeypot-svc": "powershell -ExecutionPolicy Bypass -NonInteractive -File uninstall-honeypot-service.ps1"
   },
   "dependencies": {
     "chokidar": "^3.6.0"

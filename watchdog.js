@@ -22,6 +22,16 @@ const SENSITIVE_HANDLE_PATTERNS = [
   /claude-/i,
 ];
 
+// Shell snapshot monitoring
+const SNAPSHOT_DIR = 'C:/Users/USER/.claude/shell-snapshots';
+const SNAPSHOT_READ_BYTES = 200;
+const SNAPSHOT_SUSPICIOUS_PATTERNS = [
+  /powershell/i,
+  /invoke/i,
+  /get-content/i,
+  /token/i,
+];
+
 // Paths watched by chokidar (any filesystem event fires an immediate check)
 const WATCH_PATHS = [
   'C:/Users/USER/Documents/infisical/**',
@@ -201,6 +211,79 @@ function checkHandles() {
   );
 }
 
+// ── Shell snapshot monitor ─────────────────────────────────────────────────────
+function handleShellSnapshot(filePath) {
+  if (!filePath.endsWith('.sh')) return;
+
+  let snippet = '';
+  try {
+    const fd = fs.openSync(filePath, 'r');
+    const buf = Buffer.alloc(SNAPSHOT_READ_BYTES);
+    const bytesRead = fs.readSync(fd, buf, 0, SNAPSHOT_READ_BYTES, 0);
+    fs.closeSync(fd);
+    snippet = buf.slice(0, bytesRead).toString('utf8').replace(/\0/g, '');
+  } catch (e) {
+    log(`Snapshot read error (${filePath}): ${e.message}`, 'ERROR');
+    return;
+  }
+
+  const matched = SNAPSHOT_SUSPICIOUS_PATTERNS.find((p) => p.test(snippet));
+  if (!matched) {
+    log(`Shell snapshot created (no suspicious content): ${filePath}`, 'INFO');
+    return;
+  }
+
+  log(
+    `SNAPSHOT ALERT — suspicious pattern "${matched}" in ${filePath}. ` +
+    `Snippet: ${snippet.slice(0, 100)}`,
+    'ALERT',
+  );
+
+  // Kill all bash.exe processes immediately
+  exec(
+    `taskkill /IM ${TARGET_PROCESS} /F`,
+    (killErr, killOut) => {
+      const killSummary = killErr ? `kill failed: ${killErr.message}` : (killOut || 'killed').trim();
+      const timestamp = new Date().toISOString();
+
+      const alertText =
+        `🚨 <b>SNAPSHOT ALERT</b> — <code>${MACHINE_HOSTNAME}</code>\n\n` +
+        `<b>Trigger:</b> Suspicious shell snapshot created\n` +
+        `<b>File:</b> <code>${filePath}</code>\n` +
+        `<b>Pattern:</b> <code>${matched}</code>\n` +
+        `<b>Kill result:</b> ${killSummary}\n` +
+        `<b>Snippet (200 chars):</b>\n<pre>${snippet.replace(/[<>&]/g, (c) => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))}</pre>\n` +
+        `<b>Time:</b> ${timestamp}`;
+
+      sendTelegram(alertText);
+      log(`Snapshot incident complete. Kill: ${killSummary}`, 'ALERT');
+    },
+  );
+}
+
+function startSnapshotWatcher() {
+  // Ensure directory exists before watching (Claude may not have run yet)
+  if (!fs.existsSync(SNAPSHOT_DIR)) {
+    fs.mkdirSync(SNAPSHOT_DIR, { recursive: true });
+  }
+
+  const watcher = chokidar.watch(SNAPSHOT_DIR, {
+    persistent: true,
+    ignoreInitial: true,
+    followSymlinks: false,
+    usePolling: false,
+    awaitWriteFinish: { stabilityThreshold: 100, pollInterval: 50 },
+    depth: 1,
+  });
+
+  watcher
+    .on('add',   (p) => handleShellSnapshot(p))
+    .on('error', (e) => log(`Snapshot watcher error: ${e.message}`, 'ERROR'))
+    .on('ready', ()  => log(`Shell snapshot watcher ready (${SNAPSHOT_DIR})`));
+
+  log('Shell snapshot monitor active.');
+}
+
 // ── Filesystem watcher ────────────────────────────────────────────────────────
 function startWatcher() {
   log(`Watchdog starting on ${MACHINE_HOSTNAME}`);
@@ -232,6 +315,7 @@ function startWatcher() {
 // ── Main ──────────────────────────────────────────────────────────────────────
 ensureLogDir();
 startWatcher();
+startSnapshotWatcher();
 
 process.on('SIGTERM', () => { log('Watchdog stopping (SIGTERM)'); process.exit(0); });
 process.on('SIGINT',  () => { log('Watchdog stopping (SIGINT)');  process.exit(0); });
